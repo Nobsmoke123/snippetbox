@@ -73,9 +73,18 @@ func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *application)	 snippetCreatePost(w http.ResponseWriter, r *http.Request) {
-	// Use the writeHeader method to send a status code of 201
-	w.WriteHeader(http.StatusCreated)
-	w.Header().Set("Content-Type", "application/json")
+	title := "0 snail"
+	content := "0 snail\nClimb Mount Fuji, \nBut slowly, slowly! \n\n- Kobayashi Issa"
+	expires := 7
 
-	w.Write([]byte("Save a new snippet"))
+	id, err := app.snippets.Insert(title, content, expires)
+
+	if err != nil {
+		app.logger.Error(err.Error())
+		app.serverError(w, r, err)
+		return
+	}
+
+	
+	http.Redirect(w, r, fmt.Sprintf("/snippet/view/%d", id), http.StatusSeeOther)
 }

@@ -7,19 +7,21 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/jackc/pgx/v5"
+	"github.com/Nobsmoke123/snippetbox/internal/models"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 )
 
 // Define an application struct to hold the application-wide dependencies for the
 // web application. For now we'll only include the structured logger, but we'll
 // add more to this as the build progresses.
-type application struct{
-	logger *slog.Logger
+type application struct {
+	logger   *slog.Logger
+	snippets *models.SnippetModel
 }
 
 func main() {
-	
+
 	// Define a new command-line flag with the name 'addr', a default value of ":4000"
 	// and some short help text explaining what the flag controls. The value of the
 	// flag will be stored in the addr variable at runtime.
@@ -35,38 +37,38 @@ func main() {
 	// Use the slog.New() function to initialize a new structured logger, which
 	// writes to the standard out stream and uses the default settings.
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelDebug,
+		Level:     slog.LevelDebug,
 		AddSource: true,
 	}))
 
-	app := &application{
-		logger: logger,
-	}
-
 	// Load the data from the .env file
 	err := godotenv.Load(".env")
+
 	if err != nil {
-		app.logger.Error("Error loading .env file")
+		logger.Error("Error loading .env file")
 		os.Exit(1)
 	}
-
 
 	dsn := os.Getenv("DATABASE_URL")
 
 	// To keep the main() function tidy I've put the code for creating a connection
 	// pool into the separate openDB() function below. We pass openDB() the DSN
 	// from the command-line flag.
-	db, err :=  openDb(dsn)
+	db, err := openDb(dsn)
+
 	if err != nil {
 		logger.Error(err.Error())
 		os.Exit(1)
 	}
 
+	app := &application{
+		logger:   logger,
+		snippets: &models.SnippetModel{DB: db},
+	}
+
 	// We also defer a call to db.Close(), so that the connection pool is closed
 	// before the main() function exits.
-	defer db.Close(context.Background())
-
-
+	defer db.Close()
 
 	// The value returned from the flag.String() function is a pointer to the flag
 	// value, not the value itself. So in this code, that means the addr variable
@@ -89,9 +91,8 @@ func main() {
 	os.Exit(1)
 }
 
-
-func openDb(dsn string) (*pgx.Conn, error) {
-	db, err := pgx.Connect(context.Background(), dsn)
+func openDb(dsn string) (*pgxpool.Pool, error) {
+	db, err := pgxpool.New(context.Background(), dsn)
 
 	if err != nil {
 		return nil, err
@@ -100,7 +101,7 @@ func openDb(dsn string) (*pgx.Conn, error) {
 	err = db.Ping(context.Background())
 
 	if err != nil {
-		db.Close(context.Background())
+		db.Close()
 		return nil, err
 	}
 
