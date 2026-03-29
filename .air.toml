@@ -6,6 +6,13 @@ tmp_dir = "tmp"
 [build]
   bin="./tmp/main"
   entrypoint="./tmp/main"
+  # args_bin = ["-addr=':9999' -help"]
   cmd = "go build -o ./tmp/main ./cmd/web"
   exclude_dir = ["tmp", "ui", "client"]
   include_ext = ["go"]
+[color]
+  app = "blue"
+  build = "yellow"
+  main = "magenta"
+  runner = "green"
+  watcher = "cyan"
