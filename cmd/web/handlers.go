@@ -11,6 +11,8 @@ import (
 )
 
 func (app *application) home(w http.ResponseWriter, r *http.Request) {
+	panic("Oops something happened. This is a cool way to code... Like panic when I want you to throw an error.")
+	
 	snippets, err := app.snippets.Latest()
 
 	if err != nil {
