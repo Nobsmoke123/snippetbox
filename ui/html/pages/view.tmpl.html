@@ -8,8 +8,8 @@
   <!-- Deliberate error  -->
   <pre><code>{{ .Content}}</code></pre>
   <div class="metadata">
-    <time style="font-size: small">Created: {{ .Created}}</time>
-    <time style="font-size: small">Expires: {{ .Expires}}</time>
+    <time style="font-size: small">Created: {{humanDate .Created}}</time>
+    <time style="font-size: small">Expires: {{humanDate .Expires}}</time>
   </div>
   {{end}}
 </div>
