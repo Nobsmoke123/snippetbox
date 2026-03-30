@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"html/template"
 	"log/slog"
 	"net/http"
 	"os"
@@ -18,6 +19,7 @@ import (
 type application struct {
 	logger   *slog.Logger
 	snippets *models.SnippetModel
+	templateCache map[string]*template.Template
 }
 
 func main() {
@@ -60,10 +62,12 @@ func main() {
 		logger.Error(err.Error())
 		os.Exit(1)
 	}
+	templateCache, err := newTemplateCache()
 
 	app := &application{
 		logger:   logger,
 		snippets: &models.SnippetModel{DB: db},
+		templateCache: templateCache,
 	}
 
 	// We also defer a call to db.Close(), so that the connection pool is closed
