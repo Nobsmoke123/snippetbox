@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"html/template"
@@ -45,10 +46,12 @@ func main() {
 
 	// Use the slog.New() function to initialize a new structured logger, which
 	// writes to the standard out stream and uses the default settings.
-	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		Level:     slog.LevelDebug,
-		AddSource: true,
-	}))
+	// logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+	// 	Level:     slog.LevelDebug,
+	// 	AddSource: true, // if you wanna add the source to the log
+	// }))
+
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	// Load the data from the .env file
 	err := godotenv.Load(".env")
@@ -69,6 +72,7 @@ func main() {
 		logger.Error(err.Error())
 		os.Exit(1)
 	}
+
 	templateCache, err := newTemplateCache()
 
 	// Initialize the decoder
@@ -81,12 +85,17 @@ func main() {
 	sessionManager := scs.New()
 	sessionManager.Store = pgxstore.New(db)
 	sessionManager.Lifetime = 12 * time.Hour
+	// Make sure that the Secure attribute is set on our session cookies.
+	// Setting this means that the cookie will only be sent by a user's web
+	// browser when a HTTPS connection is being used (and won't be sent over an
+	// unsecure HTTP connection).
+	sessionManager.Cookie.Secure = true
 
 	app := &application{
-		logger:        logger,
-		snippets:      &models.SnippetModel{DB: db},
-		templateCache: templateCache,
-		formDecoder:   formDecoder,
+		logger:         logger,
+		snippets:       &models.SnippetModel{DB: db},
+		templateCache:  templateCache,
+		formDecoder:    formDecoder,
 		sessionManager: sessionManager,
 	}
 
@@ -111,14 +120,33 @@ func main() {
 	// And we pass the dereferenced addr pointer to http.ListenAndServe() too.
 	// err = http.ListenAndServe(*addr, app.routes())
 
+	// Initialize a tls.Config struct to hold the non-default TLS settings we
+	// want the server to use. In this case the only thing that we're changing
+	// is the curve preferences value, so that only elliptic curves with
+	// assembly implementations are used.
+	tlsConfig := &tls.Config{
+		CurvePreferences: []tls.CurveID{tls.X25519, tls.CurveP256},
+	}
+
 	// Initialize a new http.Server struct. We set the addr and the Handler fields
 	// so that the server uses the same network address and routes as before\
 	srv := &http.Server{
-		Addr: *addr,
+		Addr:    *addr,
 		Handler: app.routes(),
+		// Create a *log.Logger from our structured logger handler, which writes
+		// log entries at Error level, and assign it to the ErrorLog field. If
+		// you would prefer to log the server errors at Warn level instead, you
+		// could pass slog.LevelWarn as the final parameter.
+		ErrorLog:  slog.NewLogLogger(logger.Handler(), slog.LevelError),
+		TLSConfig: tlsConfig,
+		// Add Idle, Read and Write timeouts to the server.
+		IdleTimeout:  time.Minute,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
 	}
 
-	err = srv.ListenAndServe()
+	// err = srv.ListenAndServe() // listen and serve on HTTP
+	err = srv.ListenAndServeTLS("./tls/cert.pem", "./tls/key.pem")
 	// log.Fatal(err)
 	logger.Error(err.Error())
 	os.Exit(1)
