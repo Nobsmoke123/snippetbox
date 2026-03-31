@@ -24,6 +24,7 @@ import (
 // add more to this as the build progresses.
 type application struct {
 	logger         *slog.Logger
+	users          *models.UserModel
 	snippets       *models.SnippetModel
 	templateCache  map[string]*template.Template
 	formDecoder    *form.Decoder
@@ -93,6 +94,7 @@ func main() {
 
 	app := &application{
 		logger:         logger,
+		users: 			&models.UserModel{DB: db},
 		snippets:       &models.SnippetModel{DB: db},
 		templateCache:  templateCache,
 		formDecoder:    formDecoder,
