@@ -3,12 +3,16 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"html/template"
 	"log/slog"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/Nobsmoke123/snippetbox/internal/models"
+	"github.com/alexedwards/scs/pgxstore"
+	"github.com/alexedwards/scs/v2"
 	"github.com/go-playground/form/v4"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
@@ -18,10 +22,11 @@ import (
 // web application. For now we'll only include the structured logger, but we'll
 // add more to this as the build progresses.
 type application struct {
-	logger   *slog.Logger
-	snippets *models.SnippetModel
-	templateCache map[string]*template.Template
-	formDecoder *form.Decoder
+	logger         *slog.Logger
+	snippets       *models.SnippetModel
+	templateCache  map[string]*template.Template
+	formDecoder    *form.Decoder
+	sessionManager *scs.SessionManager
 }
 
 func main() {
@@ -69,11 +74,20 @@ func main() {
 	// Initialize the decoder
 	formDecoder := form.NewDecoder()
 
+	// Use the scs.New() function to initialize a new session manager. Then we
+	// configure it to use our PostgreSQL database as the session store, and set a
+	// lifetime of 12 hours (so that sessions automatically expire 12 hours
+	// after first being created).
+	sessionManager := scs.New()
+	sessionManager.Store = pgxstore.New(db)
+	sessionManager.Lifetime = 12 * time.Hour
+
 	app := &application{
-		logger:   logger,
-		snippets: &models.SnippetModel{DB: db},
+		logger:        logger,
+		snippets:      &models.SnippetModel{DB: db},
 		templateCache: templateCache,
-		formDecoder: formDecoder,
+		formDecoder:   formDecoder,
+		sessionManager: sessionManager,
 	}
 
 	// We also defer a call to db.Close(), so that the connection pool is closed
@@ -95,7 +109,16 @@ func main() {
 	// we use the log.Fatal() function to log the error message and exit. Note
 	// that any error returned by http.ListenAndServe() is always non-nil.
 	// And we pass the dereferenced addr pointer to http.ListenAndServe() too.
-	err = http.ListenAndServe(*addr, app.routes())
+	// err = http.ListenAndServe(*addr, app.routes())
+
+	// Initialize a new http.Server struct. We set the addr and the Handler fields
+	// so that the server uses the same network address and routes as before\
+	srv := &http.Server{
+		Addr: *addr,
+		Handler: app.routes(),
+	}
+
+	err = srv.ListenAndServe()
 	// log.Fatal(err)
 	logger.Error(err.Error())
 	os.Exit(1)
@@ -115,5 +138,6 @@ func openDb(dsn string) (*pgxpool.Pool, error) {
 		return nil, err
 	}
 
+	fmt.Println("Successfully connected to DB!")
 	return db, nil
 }
