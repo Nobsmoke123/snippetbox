@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/Nobsmoke123/snippetbox/internal/models"
+	"github.com/go-playground/form/v4"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 )
@@ -20,6 +21,7 @@ type application struct {
 	logger   *slog.Logger
 	snippets *models.SnippetModel
 	templateCache map[string]*template.Template
+	formDecoder *form.Decoder
 }
 
 func main() {
@@ -64,10 +66,14 @@ func main() {
 	}
 	templateCache, err := newTemplateCache()
 
+	// Initialize the decoder
+	formDecoder := form.NewDecoder()
+
 	app := &application{
 		logger:   logger,
 		snippets: &models.SnippetModel{DB: db},
 		templateCache: templateCache,
+		formDecoder: formDecoder,
 	}
 
 	// We also defer a call to db.Close(), so that the connection pool is closed
