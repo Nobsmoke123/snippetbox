@@ -1,5 +1,8 @@
 {{define "title" }}Create Snippet {{end}} {{define "main"}}
 <form action="/snippet/create" method="POST">
+  <!-- Include the CSRF token -->
+  <input type="hidden" name="csrf_token" value="{{.CSRFToken}}" />
+  
   <div>
     <label for="title">Title:</label>
     {{ with .Form.FieldErrors.title }}
@@ -21,9 +24,39 @@
     {{ with .Form.FieldErrors.expires }}
     <label for="title" class="error"> {{.}}</label>
     {{end}}
-    <input type="radio" name="expires" id="" value="365" {{if (eq .Form.Expires 365)}}checked{{end}}/> One Year
-    <input type="radio" name="expires" id="" value="7" {{if (eq .Form.Expires 7)}}checked{{end}}/> One Week
-    <input type="radio" name="expires" id="" value="1" {{if (eq .Form.Expires 1)}}checked{{end}}/> One Day
+    <input
+      type="radio"
+      name="expires"
+      id=""
+      value="365"
+      {{if
+      (eq
+      .Form.Expires
+      365)}}checked{{end}}
+    />
+    One Year
+    <input
+      type="radio"
+      name="expires"
+      id=""
+      value="7"
+      {{if
+      (eq
+      .Form.Expires
+      7)}}checked{{end}}
+    />
+    One Week
+    <input
+      type="radio"
+      name="expires"
+      id=""
+      value="1"
+      {{if
+      (eq
+      .Form.Expires
+      1)}}checked{{end}}
+    />
+    One Day
   </div>
 
   <div>

@@ -2,16 +2,24 @@ package main
 
 import (
 	"html/template"
+	"io/fs"
 	"path/filepath"
 	"time"
 
 	"github.com/Nobsmoke123/snippetbox/internal/models"
+	"github.com/Nobsmoke123/snippetbox/ui"
 )
 
 // Create a humanDate function which returns a nicely formatted string
 // representation of a time.Time object.
 func humanDate(t time.Time) string {
-	return t.Format("02 Jan 2006 at 15:04pm")
+	// Return the empty string if time has the zero value.
+	if t.IsZero(){
+		return ""
+	}
+
+	// Convert the to UTC before formatting it.
+	return t.UTC().Format("02 Jan 2006 at 15:04pm")
 }
 
 // Initialize a template.FuncMap object and store it in a global variable. This is
@@ -22,11 +30,13 @@ var functions = template.FuncMap{
 }
 
 type TemplateData struct {
-	CurrentYear int
-	Snippet     models.Snippet
-	Snippets    []models.Snippet
-	Form        any
-	Flash       string
+	CurrentYear     int
+	Snippet         models.Snippet
+	Snippets        []models.Snippet
+	Form            any
+	Flash           string
+	IsAuthenticated bool
+	CSRFToken       string
 }
 
 func newTemplateCache() (map[string]*template.Template, error) {
@@ -37,7 +47,13 @@ func newTemplateCache() (map[string]*template.Template, error) {
 	// match the pattern "./ui/html/pages/*.tmpl". This will essentially gives
 	// us a slice of all the filepaths for our application 'page' templates
 	// like: [ui/html/pages/home.tmpl ui/html/pages/view.tmpl]
-	pages, err := filepath.Glob("./ui/html/pages/*.tmpl.html")
+	// pages, err := filepath.Glob("./ui/html/pages/*.tmpl.html")
+
+	// Use fs.Glob() to get a slice of all filepaths in the ui.Files embedded
+	// filesystem which match the pattern 'html/pages/*.tmpl'. This essentially
+	// gives us a slice of all the 'page' templates for the application, just
+	// like before.
+	pages, err := fs.Glob(ui.Files, "html/pages/*.tmpl.html")
 
 	if err != nil {
 		return nil, err
@@ -48,6 +64,14 @@ func newTemplateCache() (map[string]*template.Template, error) {
 		// Extract the file name (like 'home.tmpl') from the full filepath
 		// and assign it to the name variable.
 		name := filepath.Base(page)
+
+		// Create a slice containing the filepath patterns for the templates we
+		// want to parse.
+		patterns := []string{
+			"html/base.tmpl",
+			"html/partials/*.tmpl",
+			page,
+		}
 
 		// Create a slice containing the filepaths for our base template, any
 		// partials and the page.
@@ -62,7 +86,11 @@ func newTemplateCache() (map[string]*template.Template, error) {
 		// create an empty template set, use the Funcs() method to register the
 		// template.FuncMap, and then parse the file as normal.
 		// Parse the base template file into a template set.
-		ts, err := template.New(name).Funcs(functions).ParseFiles("./ui/html/base.tmpl.html")
+		// ts, err := template.New(name).Funcs(functions).ParseFiles("./ui/html/base.tmpl.html")
+
+		// Use ParseFS() instead of ParseFiles() to parse the template files
+		// from the ui.Files embedded filesystem.
+		ts, err := template.New(name).Funcs(functions).ParseFS(ui.Files, patterns...)
 
 		if err != nil {
 			return nil, err

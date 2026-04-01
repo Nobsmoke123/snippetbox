@@ -90,6 +90,7 @@ func main() {
 	// Setting this means that the cookie will only be sent by a user's web
 	// browser when a HTTPS connection is being used (and won't be sent over an
 	// unsecure HTTP connection).
+	sessionManager.Cookie.SameSite = http.SameSiteStrictMode
 	sessionManager.Cookie.Secure = true
 
 	app := &application{
@@ -128,6 +129,7 @@ func main() {
 	// assembly implementations are used.
 	tlsConfig := &tls.Config{
 		CurvePreferences: []tls.CurveID{tls.X25519, tls.CurveP256},
+		MinVersion: tls.VersionTLS13,
 	}
 
 	// Initialize a new http.Server struct. We set the addr and the Handler fields

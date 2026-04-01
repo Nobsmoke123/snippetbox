@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/go-playground/form/v4"
+	"github.com/justinas/nosurf"
 )
 
 // The serverError helper writes a log entry at Error level (including the request
@@ -69,6 +70,8 @@ func (app *application) newTemplateData(r *http.Request) TemplateData {
 	return TemplateData{
 		CurrentYear: time.Now().Year(),
 		Flash: app.sessionManager.PopString(r.Context(), "flash"),
+		IsAuthenticated: app.isAuthenticated(r),
+		CSRFToken: nosurf.Token(r),
 	}
 }
 
@@ -98,4 +101,14 @@ func (app *application) decodePostForm(r *http.Request, dst any) error {
 		return err
 	}
 	return nil
+}
+
+
+func (app *application) isAuthenticated(r *http.Request) bool{
+	isAuthenticated, ok := r.Context().Value(isAuthenticatedContextKey).(bool)
+	if !ok {
+		return false
+	}
+	// return app.sessionManager.Exists(r.Context(), AUTHENTICATED_KEY_IDENTIFIER)
+	return isAuthenticated
 }
