@@ -25,6 +25,12 @@ type UserModel struct {
 	DB *pgxpool.Pool
 }
 
+type UserModelInterface interface{
+	Insert(name, email, password string) error
+	Authenticate(email, password string) (int, error)
+	Exists(id int) (bool, error)
+}
+
 func (m *UserModel) Insert(name, email, password string) error {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), 12)
 
