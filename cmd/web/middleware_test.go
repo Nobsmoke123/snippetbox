@@ -77,5 +77,4 @@ func TestCommonHeaders(t *testing.T) {
 	}
 	body = bytes.TrimSpace(body)
 	assert.Equal(t, string(body), "OK")
-
 }

@@ -171,18 +171,14 @@ func TestUserSignup(t *testing.T) {
 	// Make a GET /user/signup request and then entract the CSRF token from
 	// the response body
 	_, _, body := ts.get(t, "/user/signup")
-	csrfToken := extractCSRFToken(t, body)
+	csrfTokenValue := extractCSRFToken(t, body)
 
-	// Log the CSRF token value in our test output using the t.Logf() function.
-	// The t.Logf() function works in the same way as fmt.Println(), but writes
-	// the provided message to the test output.
-	// t.Logf("CSRF token is: %q", csrfToken)
 
 	const (
 		validName     = "Bob"
 		validPassword = "validPassword"
 		validEmail    = "bob@example.com"
-		formTag       = "<form action='user/signup' method='POST' novalidate>"
+		formTag       = `<form action="/user/signup" method="POST" novalidate>`
 	)
 
 	tests := []struct {
@@ -191,78 +187,78 @@ func TestUserSignup(t *testing.T) {
 		userEmail    string
 		userPassword string
 		csrfToken    string
-		wantCode     int
-		wantFormTag  string
+		wantCode    int
+		wantFormTag string
 	}{
 		{
 			name:         "Valid submission",
 			userName:     validName,
 			userEmail:    validEmail,
 			userPassword: validPassword,
-			csrfToken:    csrfToken,
-			wantCode:     http.StatusSeeOther,
+			csrfToken:    csrfTokenValue,
+			wantCode: http.StatusSeeOther,
 		},
 		{
 			name:         "Invalid CSRF Token",
 			userName:     validName,
 			userEmail:    validEmail,
 			userPassword: validPassword,
-			csrfToken:    csrfToken,
-			wantCode:     http.StatusBadRequest,
+			csrfToken:    "wrongToken",
+			wantCode: http.StatusBadRequest,
 		},
 		{
 			name:         "Empty name",
 			userName:     "",
 			userEmail:    validEmail,
 			userPassword: validPassword,
-			csrfToken:    csrfToken,
-			wantCode:     http.StatusUnprocessableEntity,
-			wantFormTag:  formTag,
+			csrfToken:    csrfTokenValue,
+			wantCode:    http.StatusUnprocessableEntity,
+			wantFormTag: formTag,
 		},
 		{
 			name:         "Empty email",
 			userName:     validName,
 			userEmail:    "",
 			userPassword: validPassword,
-			csrfToken:    csrfToken,
-			wantCode:     http.StatusUnprocessableEntity,
-			wantFormTag:  formTag,
+			csrfToken:    csrfTokenValue,
+			wantCode:    http.StatusUnprocessableEntity,
+			wantFormTag: formTag,
 		},
 		{
 			name:         "Empty password",
 			userName:     validName,
 			userEmail:    validEmail,
 			userPassword: "",
-			csrfToken:    csrfToken,
-			wantCode:     http.StatusUnprocessableEntity,
-			wantFormTag:  formTag,
+			csrfToken:    csrfTokenValue,
+			wantCode:    http.StatusUnprocessableEntity,
+			wantFormTag: formTag,
 		},
 		{
 			name:         "Invalid email",
 			userName:     validName,
 			userEmail:    "bob@example.",
 			userPassword: validPassword,
-			csrfToken:    csrfToken,
-			wantCode:     http.StatusUnprocessableEntity,
-			wantFormTag:  formTag,
+			csrfToken:    csrfTokenValue,
+			wantCode:    http.StatusUnprocessableEntity,
+			wantFormTag: formTag,
 		},
 		{
 			name:         "Short password",
 			userName:     validName,
 			userEmail:    validEmail,
 			userPassword: "pa$$",
-			csrfToken:    csrfToken,
-			wantCode:     http.StatusUnprocessableEntity,
-			wantFormTag:  formTag,
+			csrfToken:    csrfTokenValue,
+			wantCode:    http.StatusUnprocessableEntity,
+			wantFormTag: formTag,
 		},
 		{
 			name:         "Duplicate email",
 			userName:     validName,
 			userEmail:    "dupe@example.com",
 			userPassword: validPassword,
-			csrfToken:    csrfToken,
-			wantCode:     http.StatusUnprocessableEntity,
-			wantFormTag:  formTag,
+			csrfToken:    csrfTokenValue,
+			wantCode:    http.StatusUnprocessableEntity,
+			wantFormTag: formTag,
 		},
 	}
 
@@ -278,7 +274,7 @@ func TestUserSignup(t *testing.T) {
 
 			assert.Equal(t, code, tt.wantCode)
 
-			if tt.wantFormTag != ""{
+			if tt.wantFormTag != "" {
 				assert.StringContains(t, body, tt.wantFormTag)
 			}
 		})

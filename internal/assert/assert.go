@@ -15,7 +15,7 @@ func Equal[T comparable](t *testing.T, actual, expected T) {
 
 func StringContains(t *testing.T, actual, expectedSubString string){
 	t.Helper()
-	if !strings.Contains(actual,expectedSubString) {
+	if !strings.Contains(actual, expectedSubString) {
 		t.Errorf("got: %q; expected to contain %q", actual, expectedSubString)
 	}
 }

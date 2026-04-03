@@ -171,7 +171,6 @@ func (app *application) userSignUp(w http.ResponseWriter, r *http.Request) {
 
 func (app *application) userSignUpPost(w http.ResponseWriter, r *http.Request) {
 	var form userSignupForm
-
 	err := app.decodePostForm(r, &form)
 
 	if err != nil {
@@ -205,7 +204,6 @@ func (app *application) userSignUpPost(w http.ResponseWriter, r *http.Request) {
 		} else {
 			app.serverError(w, r, err)
 		}
-		fmt.Println("The error is: ", err.Error())
 		return
 	}
 

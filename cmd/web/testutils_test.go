@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -32,6 +33,7 @@ func extractCSRFToken(t *testing.T, body string)string{
 	// Note that this returns an array with the entire matched pattern in the 
 	// first position, and the values of any captured data in the subsequent positions
 	matches := csrfTokenRX.FindStringSubmatch(body)
+
 	if len(matches) < 2 {
 		t.Fatal("no csrf token found in the body")
 	}
@@ -120,7 +122,28 @@ func (ts *testServer) get(t *testing.T, urlPath string) (int, http.Header, strin
 
 
 func (ts *testServer) postForm(t *testing.T, urlPath string, form url.Values)(int, http.Header, string){
-	rs, err := ts.Client().PostForm(ts.URL+urlPath, form)
+	// rs, err := ts.Client().PostForm(ts.URL+urlPath, form)
+	// if err != nil {
+	// 	t.Fatal(err)
+	// }
+
+	// Encode the form data
+	postBody := strings.NewReader(form.Encode())
+
+	// Create a new POST request
+	req, err := http.NewRequest("POST", ts.URL+urlPath, postBody)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Set required headers
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	// 🔥 IMPORTANT: Add Referer header for CSRF middleware
+	req.Header.Set("Referer", ts.URL+urlPath)
+
+	// Send the request using the test server's client (with cookie jar)
+	rs, err := ts.Client().Do(req)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -133,6 +156,7 @@ func (ts *testServer) postForm(t *testing.T, urlPath string, form url.Values)(in
 	}
 
 	body = bytes.TrimSpace(body)
+	
 
 	// Return the response status, headers and body
 	return rs.StatusCode, rs.Header, string(body)
