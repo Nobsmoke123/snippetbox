@@ -63,6 +63,8 @@ func main() {
 	}
 
 	dsn := os.Getenv("DATABASE_URL")
+	// test_database := os.Getenv("TEST_DATABASE_URL")
+	// fmt.Println("The test database", test_database)
 
 	// To keep the main() function tidy I've put the code for creating a connection
 	// pool into the separate openDB() function below. We pass openDB() the DSN

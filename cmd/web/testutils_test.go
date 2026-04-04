@@ -28,19 +28,18 @@ type testServer struct {
 // HTML for our signup page.
 var csrfTokenRX = regexp.MustCompile(`<input type="hidden" name="csrf_token" value="(.+)" />`)
 
-func extractCSRFToken(t *testing.T, body string)string{
+func extractCSRFToken(t *testing.T, body string) string {
 	// Use the FindStringSubmatch method to extract the token from the HTML body.
-	// Note that this returns an array with the entire matched pattern in the 
+	// Note that this returns an array with the entire matched pattern in the
 	// first position, and the values of any captured data in the subsequent positions
 	matches := csrfTokenRX.FindStringSubmatch(body)
 
 	if len(matches) < 2 {
 		t.Fatal("no csrf token found in the body")
 	}
-	
+
 	return html.UnescapeString(matches[1])
 }
-
 
 // Create a newTestApplication helper which returns an instance of our
 // application struct containing mocked dependencies.
@@ -63,11 +62,11 @@ func newTestApplication(t *testing.T) *application {
 	sessionManager.Cookie.Secure = true
 
 	return &application{
-		logger: slog.New(slog.DiscardHandler),
-		snippets: &mocks.SnippetModel{}, // use the mocks
-		users: &mocks.UserModel{}, // use the mocks
-		templateCache: templaceCache,
-		formDecoder: formDecoder,
+		logger:         slog.New(slog.DiscardHandler),
+		snippets:       &mocks.SnippetModel{}, // use the mocks
+		users:          &mocks.UserModel{},    // use the mocks
+		templateCache:  templaceCache,
+		formDecoder:    formDecoder,
 		sessionManager: sessionManager,
 	}
 }
@@ -92,7 +91,7 @@ func newTestServer(t *testing.T, h http.Handler) *testServer {
 	// response is received by the client, and by always returning a
 	// http.ErrUseLastResponse error it forces the client to immediately return
 	// the received response.
-	ts.Client().CheckRedirect = func (req *http.Request, via []*http.Request)error{
+	ts.Client().CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		return http.ErrUseLastResponse
 	}
 
@@ -120,8 +119,7 @@ func (ts *testServer) get(t *testing.T, urlPath string) (int, http.Header, strin
 	return rs.StatusCode, rs.Header, string(body)
 }
 
-
-func (ts *testServer) postForm(t *testing.T, urlPath string, form url.Values)(int, http.Header, string){
+func (ts *testServer) postForm(t *testing.T, urlPath string, form url.Values) (int, http.Header, string) {
 	// rs, err := ts.Client().PostForm(ts.URL+urlPath, form)
 	// if err != nil {
 	// 	t.Fatal(err)
@@ -156,7 +154,6 @@ func (ts *testServer) postForm(t *testing.T, urlPath string, form url.Values)(in
 	}
 
 	body = bytes.TrimSpace(body)
-	
 
 	// Return the response status, headers and body
 	return rs.StatusCode, rs.Header, string(body)
