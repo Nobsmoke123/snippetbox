@@ -29,6 +29,7 @@ type application struct {
 	templateCache  map[string]*template.Template
 	formDecoder    *form.Decoder
 	sessionManager *scs.SessionManager
+	debugMode      bool
 }
 
 func main() {
@@ -37,6 +38,8 @@ func main() {
 	// and some short help text explaining what the flag controls. The value of the
 	// flag will be stored in the addr variable at runtime.
 	addr := flag.String("addr", ":4000", "HTTP network address")
+
+	debug := flag.Bool("debug", false, "Enable debug mode.")
 
 	// Importantly, we use the flag.Parse() function to parse the command-line flag.
 	// This reads in the command-line flag value and assigns it to the addr
@@ -63,8 +66,6 @@ func main() {
 	}
 
 	dsn := os.Getenv("DATABASE_URL")
-	// test_database := os.Getenv("TEST_DATABASE_URL")
-	// fmt.Println("The test database", test_database)
 
 	// To keep the main() function tidy I've put the code for creating a connection
 	// pool into the separate openDB() function below. We pass openDB() the DSN
@@ -97,11 +98,12 @@ func main() {
 
 	app := &application{
 		logger:         logger,
-		users: 			&models.UserModel{DB: db},
+		users:          &models.UserModel{DB: db},
 		snippets:       &models.SnippetModel{DB: db},
 		templateCache:  templateCache,
 		formDecoder:    formDecoder,
 		sessionManager: sessionManager,
+		debugMode:      *debug,
 	}
 
 	// We also defer a call to db.Close(), so that the connection pool is closed
@@ -131,7 +133,7 @@ func main() {
 	// assembly implementations are used.
 	tlsConfig := &tls.Config{
 		CurvePreferences: []tls.CurveID{tls.X25519, tls.CurveP256},
-		MinVersion: tls.VersionTLS13,
+		MinVersion:       tls.VersionTLS13,
 	}
 
 	// Initialize a new http.Server struct. We set the addr and the Handler fields

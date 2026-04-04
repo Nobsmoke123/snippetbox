@@ -45,6 +45,7 @@ func (app *application) routes() http.Handler {
 	// method returns a http.Handler (rather than a http.HandlerFunc) we also
 	// need to switch to registering the route using the mux.Handle() method.
 	mux.Handle("GET /{$}", dynamic.ThenFunc(app.home))
+	mux.Handle("GET /about", dynamic.ThenFunc(app.about))
 
 	protected := dynamic.Append(app.requireAuthentication)
 

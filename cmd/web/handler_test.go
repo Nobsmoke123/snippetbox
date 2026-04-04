@@ -168,11 +168,8 @@ func TestUserSignup(t *testing.T) {
 	ts := newTestServer(t, app.routes())
 	defer ts.Close()
 
-	// Make a GET /user/signup request and then entract the CSRF token from
-	// the response body
 	_, _, body := ts.get(t, "/user/signup")
 	csrfTokenValue := extractCSRFToken(t, body)
-
 
 	const (
 		validName     = "Bob"
@@ -187,8 +184,8 @@ func TestUserSignup(t *testing.T) {
 		userEmail    string
 		userPassword string
 		csrfToken    string
-		wantCode    int
-		wantFormTag string
+		wantCode     int
+		wantFormTag  string
 	}{
 		{
 			name:         "Valid submission",
@@ -196,7 +193,7 @@ func TestUserSignup(t *testing.T) {
 			userEmail:    validEmail,
 			userPassword: validPassword,
 			csrfToken:    csrfTokenValue,
-			wantCode: http.StatusSeeOther,
+			wantCode:     http.StatusSeeOther,
 		},
 		{
 			name:         "Invalid CSRF Token",
@@ -204,7 +201,7 @@ func TestUserSignup(t *testing.T) {
 			userEmail:    validEmail,
 			userPassword: validPassword,
 			csrfToken:    "wrongToken",
-			wantCode: http.StatusBadRequest,
+			wantCode:     http.StatusBadRequest,
 		},
 		{
 			name:         "Empty name",
@@ -212,8 +209,8 @@ func TestUserSignup(t *testing.T) {
 			userEmail:    validEmail,
 			userPassword: validPassword,
 			csrfToken:    csrfTokenValue,
-			wantCode:    http.StatusUnprocessableEntity,
-			wantFormTag: formTag,
+			wantCode:     http.StatusUnprocessableEntity,
+			wantFormTag:  formTag,
 		},
 		{
 			name:         "Empty email",
@@ -221,8 +218,8 @@ func TestUserSignup(t *testing.T) {
 			userEmail:    "",
 			userPassword: validPassword,
 			csrfToken:    csrfTokenValue,
-			wantCode:    http.StatusUnprocessableEntity,
-			wantFormTag: formTag,
+			wantCode:     http.StatusUnprocessableEntity,
+			wantFormTag:  formTag,
 		},
 		{
 			name:         "Empty password",
@@ -230,8 +227,8 @@ func TestUserSignup(t *testing.T) {
 			userEmail:    validEmail,
 			userPassword: "",
 			csrfToken:    csrfTokenValue,
-			wantCode:    http.StatusUnprocessableEntity,
-			wantFormTag: formTag,
+			wantCode:     http.StatusUnprocessableEntity,
+			wantFormTag:  formTag,
 		},
 		{
 			name:         "Invalid email",
@@ -239,8 +236,8 @@ func TestUserSignup(t *testing.T) {
 			userEmail:    "bob@example.",
 			userPassword: validPassword,
 			csrfToken:    csrfTokenValue,
-			wantCode:    http.StatusUnprocessableEntity,
-			wantFormTag: formTag,
+			wantCode:     http.StatusUnprocessableEntity,
+			wantFormTag:  formTag,
 		},
 		{
 			name:         "Short password",
@@ -248,8 +245,8 @@ func TestUserSignup(t *testing.T) {
 			userEmail:    validEmail,
 			userPassword: "pa$$",
 			csrfToken:    csrfTokenValue,
-			wantCode:    http.StatusUnprocessableEntity,
-			wantFormTag: formTag,
+			wantCode:     http.StatusUnprocessableEntity,
+			wantFormTag:  formTag,
 		},
 		{
 			name:         "Duplicate email",
@@ -257,8 +254,8 @@ func TestUserSignup(t *testing.T) {
 			userEmail:    "dupe@example.com",
 			userPassword: validPassword,
 			csrfToken:    csrfTokenValue,
-			wantCode:    http.StatusUnprocessableEntity,
-			wantFormTag: formTag,
+			wantCode:     http.StatusUnprocessableEntity,
+			wantFormTag:  formTag,
 		},
 	}
 
@@ -279,4 +276,38 @@ func TestUserSignup(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestSnippetCreate(t *testing.T) {
+	app := newTestApplication(t)
+	ts := newTestServer(t, app.routes())
+
+	defer ts.Close()
+
+	t.Run("Unauthenticated", func(t *testing.T) {
+		code, headers, _ := ts.get(t, "/snippet/create")
+
+		assert.Equal(t, code, http.StatusSeeOther)
+		assert.Equal(t, headers.Get("Location"), "/user/login")
+	})
+
+	t.Run("Authenticated", func(t *testing.T) {
+		// Make a get request to the login page to extract the CSRF token
+		_, _, body := ts.get(t, "/user/login")
+		csrfToken := extractCSRFToken(t, body)
+
+		// Make a post request to the login page to be authenticated
+		form := url.Values{}
+		form.Add("email", "alice@gmail.com")
+		form.Add("password", "pa$$word")
+		form.Add("csrf_token", csrfToken)
+
+		ts.postForm(t, "/user/login", form)
+
+		// Make a request to the create snippet page
+		code, _, body := ts.get(t, "/snippet/create")
+		
+		assert.Equal(t, code, http.StatusOK)
+		assert.StringContains(t, body, `<form action="/snippet/create" method="POST">`)
+	})
 }
