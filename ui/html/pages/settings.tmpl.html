@@ -1,21 +1,21 @@
 {{define "title"}}Change Password{{end}} {{define "main"}}
 <h2>Change Password</h2>
 
-<form action="/user/signup" method="POST" novalidate>
+<form action="/account/settings" method="POST" novalidate>
   <!-- Include the CSRF token -->
   <input type="hidden" name="csrf_token" value="{{.CSRFToken}}" />
 
   <div>
     <label>Current Password:</label>
-    {{with .Form.FieldErrors.name}}
+    {{with .Form.FieldErrors.password}}
     <label class="error">{{.}}</label>
     {{end}}
-    <input type="text" name="name" />
+    <input type="password" name="password" />
   </div>
 
   <div>
     <label>New Password:</label>
-    {{with .Form.FieldErrors.email}}
+    {{with .Form.FieldErrors.new_password}}
     <label class="error">{{.}}</label>
     {{end}}
     <input type="password" name="new_password" />
@@ -23,7 +23,7 @@
 
   <div>
     <label>Confirm New Password:</label>
-    {{with .Form.FieldErrors.password}}
+    {{with .Form.FieldErrors.confirm_password}}
     <label class="error">{{.}}</label>
     {{end}}
     <input type="password" name="confirm_password" />

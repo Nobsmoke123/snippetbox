@@ -3,7 +3,6 @@ package models
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/jackc/pgerrcode"
@@ -30,6 +29,7 @@ type UserModelInterface interface{
 	Authenticate(email, password string) (int, error)
 	Exists(id int) (bool, error)
 	Get(id int) (User, error)
+	PasswordUpdate(id int, currentPassword, newPassword string) error
 }
 
 func (m *UserModel) Insert(name, email, password string) error {
@@ -43,7 +43,6 @@ func (m *UserModel) Insert(name, email, password string) error {
 	_, err = m.DB.Exec(context.Background(), stmt, name, email, string(hash))
 
 	if err != nil {
-		fmt.Println("The error is: ", err.Error())
 		var pgError *pgconn.PgError
 
 		if errors.As(err, &pgError) {
@@ -119,4 +118,40 @@ func (u *UserModel) Exists(id int) (bool, error) {
 	}
 
 	return exists, nil
+}
+
+
+func (u *UserModel) PasswordUpdate(id int, currentPassword, newPassword string) error {
+	var hashedPassword []byte
+
+	stmt := `SELECT password FROM users WHERE id=$1`
+
+	err := u.DB.QueryRow(context.Background(), stmt, id).Scan(&hashedPassword)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrNoRecord
+		} else {
+			return err
+		}
+	}
+
+	err = bcrypt.CompareHashAndPassword(hashedPassword, []byte(currentPassword))
+	if err != nil {
+		return ErrInvalidCredentials
+	}
+
+	hash, err:= bcrypt.GenerateFromPassword([]byte(newPassword), 12)
+    if err != nil {
+		return err
+	}
+
+	stmt = `UPDATE users SET password=$2 WHERE id=$1 `
+
+	_, err = u.DB.Exec(context.Background(), stmt, id, hash)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

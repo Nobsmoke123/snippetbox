@@ -57,6 +57,11 @@ func MaxChars(value string, n int) bool {
 	return utf8.RuneCountInString(value) <= n
 }
 
+
+func Equals(value1, value2 string) bool {
+	return value1 == value2
+}
+
 // PermittedValue() returns true if a value is in a list of specific permitted
 // values.
 func PermittedValue[T comparable](value T, permittedValues ...T) bool {

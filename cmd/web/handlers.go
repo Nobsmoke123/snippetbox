@@ -36,6 +36,13 @@ type userSignupForm struct {
 	validator.Validator `form:"-"`
 }
 
+type userSettingsForm struct {
+	Password            string `form:"password"`
+	NewPassword         string `form:"new_password"`
+	ConfirmPassword     string `form:"confirm_password"`
+	validator.Validator `form:"-"`
+}
+
 func (app *application) home(w http.ResponseWriter, r *http.Request) {
 	snippets, err := app.snippets.Latest()
 
@@ -227,7 +234,6 @@ func (app *application) userLoginPost(w http.ResponseWriter, r *http.Request) {
 	err := app.decodePostForm(r, &form)
 
 	if err != nil {
-		app.logger.Debug("The error is: " + err.Error())
 		app.clientError(w, r, http.StatusBadRequest)
 		return
 	}
@@ -265,7 +271,7 @@ func (app *application) userLoginPost(w http.ResponseWriter, r *http.Request) {
 	// authentication state or privilege levels changes for the user (e.g. login
 	// and logout operations).
 	err = app.sessionManager.RenewToken(r.Context())
-	
+
 	if err != nil {
 		app.serverError(w, r, err)
 		return
@@ -277,11 +283,11 @@ func (app *application) userLoginPost(w http.ResponseWriter, r *http.Request) {
 
 	path := app.sessionManager.PopString(r.Context(), REDIRECT_AFTER_LOGIN_PATH)
 
-	if path != ""{
+	if path != "" {
 		http.Redirect(w, r, path, http.StatusSeeOther)
 		return
 	}
-	
+
 	// Redirect the user to the create snippet page
 	http.Redirect(w, r, "/snippet/create", http.StatusSeeOther)
 }
@@ -311,20 +317,20 @@ func ping(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("OK"))
 }
 
-func (app *application) about(w http.ResponseWriter, r *http.Request){
+func (app *application) about(w http.ResponseWriter, r *http.Request) {
 	data := app.newTemplateData(r)
 	app.render(w, r, http.StatusOK, "about.tmpl.html", data)
 }
 
-func (app *application) accountView(w http.ResponseWriter, r *http.Request){
+func (app *application) accountView(w http.ResponseWriter, r *http.Request) {
 	data := app.newTemplateData(r)
 	userID := app.sessionManager.GetInt(r.Context(), AUTHENTICATED_KEY_IDENTIFIER)
 
 	user, err := app.users.Get(userID)
 	if err != nil {
-		if errors.Is(err, models.ErrNoRecord){
+		if errors.Is(err, models.ErrNoRecord) {
 			http.Redirect(w, r, "/user/login", http.StatusSeeOther)
-		}else{
+		} else {
 			app.serverError(w, r, err)
 		}
 		return
@@ -332,4 +338,56 @@ func (app *application) accountView(w http.ResponseWriter, r *http.Request){
 
 	data.User = user
 	app.render(w, r, http.StatusOK, "account.tmpl.html", data)
+}
+
+func (app *application) settingsPage(w http.ResponseWriter, r *http.Request) {
+	data := app.newTemplateData(r)
+	data.Form = userSettingsForm{}
+	app.render(w, r, http.StatusOK, "settings.tmpl.html", data)
+}
+
+func (app *application) settingsPagePost(w http.ResponseWriter, r *http.Request){
+	var form userSettingsForm
+
+	err := app.decodePostForm(r, &form)
+
+	if err != nil {
+		app.clientError(w, r, http.StatusBadRequest)
+		return
+	}
+
+	form.CheckField(validator.NotBlank(form.Password), "password", "This field cannot be blank.")
+	form.CheckField(validator.MinChars(form.NewPassword, 8), "password", "This field must be 8 characters long.")
+
+	form.CheckField(validator.NotBlank(form.NewPassword), "new_password", "This field cannot be blank.")
+	form.CheckField(validator.MinChars(form.NewPassword, 8), "new_password", "This field must be 8 characters long.")
+
+	form.CheckField(validator.NotBlank(form.ConfirmPassword), "confirm_password", "This field cannot be blank.")
+	form.CheckField(validator.MinChars(form.ConfirmPassword, 8), "confirm_password", "This field must be 8 characters long.")
+
+	form.CheckField(validator.Equals(form.NewPassword, form.ConfirmPassword), "confirm_password", "New password must match confirm password.")
+
+	if !form.Valid() {
+		data := app.newTemplateData(r)
+		data.Form = form
+		app.render(w, r, http.StatusUnprocessableEntity, "settings.tmpl.html", data)
+		return
+	}
+
+	userId := app.sessionManager.GetInt(r.Context(), AUTHENTICATED_KEY_IDENTIFIER)
+	
+	// Get the current user
+	err = app.users.PasswordUpdate(userId, form.Password, form.NewPassword)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	// Otherwise add a confirmation flash message to the session confirming that
+	// their signup worked.
+	app.sessionManager.Put(r.Context(), "flash", "Your password was updated successfully.")
+
+	// Add redirect the user to the Login page.
+	http.Redirect(w, r, "/account/settings", http.StatusSeeOther)
+
 }

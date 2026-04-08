@@ -65,6 +65,10 @@ func (app *application) routes() http.Handler {
 
 	mux.Handle("POST /user/logout", protected.ThenFunc(app.userLogoutPost))
 
+	mux.Handle("GET /account/settings", protected.ThenFunc(app.settingsPage))
+
+	mux.Handle("POST /account/settings", protected.ThenFunc(app.settingsPagePost))
+
 	standard := alice.New(app.recoverPanic, app.logRequest, commonHeaders)
 
 	return standard.Then(mux)
