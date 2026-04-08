@@ -14,7 +14,7 @@ import (
 // representation of a time.Time object.
 func humanDate(t time.Time) string {
 	// Return the empty string if time has the zero value.
-	if t.IsZero(){
+	if t.IsZero() {
 		return ""
 	}
 
@@ -37,6 +37,7 @@ type TemplateData struct {
 	Flash           string
 	IsAuthenticated bool
 	CSRFToken       string
+	User            models.User
 }
 
 func newTemplateCache() (map[string]*template.Template, error) {

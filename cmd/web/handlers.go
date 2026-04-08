@@ -275,6 +275,13 @@ func (app *application) userLoginPost(w http.ResponseWriter, r *http.Request) {
 	// 'logged in'.
 	app.sessionManager.Put(r.Context(), AUTHENTICATED_KEY_IDENTIFIER, id)
 
+	path := app.sessionManager.PopString(r.Context(), REDIRECT_AFTER_LOGIN_PATH)
+
+	if path != ""{
+		http.Redirect(w, r, path, http.StatusSeeOther)
+		return
+	}
+	
 	// Redirect the user to the create snippet page
 	http.Redirect(w, r, "/snippet/create", http.StatusSeeOther)
 }
@@ -307,4 +314,22 @@ func ping(w http.ResponseWriter, r *http.Request) {
 func (app *application) about(w http.ResponseWriter, r *http.Request){
 	data := app.newTemplateData(r)
 	app.render(w, r, http.StatusOK, "about.tmpl.html", data)
+}
+
+func (app *application) accountView(w http.ResponseWriter, r *http.Request){
+	data := app.newTemplateData(r)
+	userID := app.sessionManager.GetInt(r.Context(), AUTHENTICATED_KEY_IDENTIFIER)
+
+	user, err := app.users.Get(userID)
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord){
+			http.Redirect(w, r, "/user/login", http.StatusSeeOther)
+		}else{
+			app.serverError(w, r, err)
+		}
+		return
+	}
+
+	data.User = user
+	app.render(w, r, http.StatusOK, "account.tmpl.html", data)
 }
