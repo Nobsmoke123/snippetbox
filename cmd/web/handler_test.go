@@ -278,7 +278,7 @@ func TestUserSignup(t *testing.T) {
 	}
 }
 
-func TestSnippetCreate(t *testing.T) {
+func TestSnippetCreatePost(t *testing.T) {
 	app := newTestApplication(t)
 	ts := newTestServer(t, app.routes())
 

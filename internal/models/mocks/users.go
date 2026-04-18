@@ -17,11 +17,11 @@ func (m *UserModel) Insert(name, email, password string) error {
 	}
 }
 
-func (m *UserModel) Authenticate(email, password string) (int, error) {
+func (m *UserModel) Authenticate(email, password string) (int,string, error) {
 	if email == "alice@gmail.com" && password == "pa$$word" {
-		return 1, nil
+		return 1, "admin",nil
 	}
-	return 0, models.ErrInvalidCredentials
+	return 0,"",models.ErrInvalidCredentials
 }
 
 func (m *UserModel) Get(id int) (models.User, error){
@@ -45,5 +45,13 @@ func (m *UserModel) Exists(id int) (bool, error) {
 		return true, nil
 	default:
 		return false, nil
+	}
+}
+
+func (m *UserModel) PasswordUpdate(id int, currentPassword, newPassword string) error {
+	if id == 1 {
+		return nil
+	}else{
+		return models.ErrNoRecord
 	}
 }

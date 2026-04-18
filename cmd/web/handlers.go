@@ -23,6 +23,7 @@ type snippetCreateForm struct {
 	validator.Validator `form:"-"`
 }
 
+
 type userLoginForm struct {
 	Email               string `form:"email"`
 	Password            string `form:"password"`
@@ -252,7 +253,8 @@ func (app *application) userLoginPost(w http.ResponseWriter, r *http.Request) {
 
 	// Check whether the credentials are valid. If they're not, add a generic
 	// non-field error message and re-display the login page.
-	id, err := app.users.Authenticate(form.Email, form.Password)
+	id, name, err := app.users.Authenticate(form.Email, form.Password)
+
 	if err != nil {
 		if errors.Is(err, models.ErrInvalidCredentials) {
 			form.AddNonFieldError("Invalid email or password.")
@@ -288,6 +290,8 @@ func (app *application) userLoginPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	app.sessionManager.Put(r.Context(), "flash", fmt.Sprintf("Welcome back %s", name))
+	
 	// Redirect the user to the create snippet page
 	http.Redirect(w, r, "/snippet/create", http.StatusSeeOther)
 }
@@ -365,7 +369,7 @@ func (app *application) settingsPagePost(w http.ResponseWriter, r *http.Request)
 	form.CheckField(validator.NotBlank(form.ConfirmPassword), "confirm_password", "This field cannot be blank.")
 	form.CheckField(validator.MinChars(form.ConfirmPassword, 8), "confirm_password", "This field must be 8 characters long.")
 
-	form.CheckField(validator.Equals(form.NewPassword, form.ConfirmPassword), "confirm_password", "New password must match confirm password.")
+	form.CheckField(validator.Equals(form.NewPassword, form.ConfirmPassword), "confirm_password", "Confirm password must match new password.")
 
 	if !form.Valid() {
 		data := app.newTemplateData(r)

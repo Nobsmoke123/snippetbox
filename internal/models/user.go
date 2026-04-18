@@ -26,7 +26,7 @@ type UserModel struct {
 
 type UserModelInterface interface{
 	Insert(name, email, password string) error
-	Authenticate(email, password string) (int, error)
+	Authenticate(email, password string) (int, string, error)
 	Exists(id int) (bool, error)
 	Get(id int) (User, error)
 	PasswordUpdate(id int, currentPassword, newPassword string) error
@@ -73,21 +73,22 @@ func (m *UserModel) Get(id int) (User, error) {
 	return user, nil
 }
 
-func (u *UserModel) Authenticate(email, password string) (int, error) {
+func (u *UserModel) Authenticate(email, password string) (int, string, error) {
 	// Retrieve the id and hashed password associated with the given email. If
 	// no matching email exists we return the ErrInvalidCredentials error.
 	var id int
+	var name string
 	var hashedPassword []byte
 
-	stmt := `SELECT id, password FROM users WHERE email = $1`
+	stmt := `SELECT id, name, password FROM users WHERE email = $1`
 
-	err := u.DB.QueryRow(context.Background(), stmt, email).Scan(&id, &hashedPassword)
+	err := u.DB.QueryRow(context.Background(), stmt, email).Scan(&id, &name, &hashedPassword)
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return 0, ErrInvalidCredentials
+			return 0,"", ErrInvalidCredentials
 		} else {
-			return 0, err
+			return 0, "", err
 		}
 	}
 
@@ -96,14 +97,14 @@ func (u *UserModel) Authenticate(email, password string) (int, error) {
 	err = bcrypt.CompareHashAndPassword(hashedPassword, []byte(password))
 	if err != nil {
 		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
-			return 0, ErrInvalidCredentials
+			return 0,"", ErrInvalidCredentials
 		} else {
-			return 0, err
+			return 0,"", err
 		}
 	}
 
 	// Otherwise, the password is correct. Return the user ID.
-	return id, nil
+	return id, name, nil
 }
 
 func (u *UserModel) Exists(id int) (bool, error) {
